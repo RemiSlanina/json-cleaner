@@ -2,7 +2,7 @@
 @rendermode InteractiveServer 
 @using System.Text.Json 
 @using System.Threading.Tasks
-@using Microsoft.AspNetCore.Razor.TagHelpers
+@using System.Security.Cryptography
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
 
@@ -28,11 +28,15 @@
     </select><br /><br />
 <button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
 
+
+<h2>Debugging</h2>
 <p>Debug jsonInput: @jsonInput @actionChoice</p><br /><br /> 
+<hr>
 
 <h2>Output</h2>
-
-<pre>@serializedJson</pre>
+<hr> <br /> <br />
+<pre>@serializedJson</pre> <br />  <br /> 
+<hr>
 
 
 @code {
@@ -51,14 +55,14 @@
 
     private async Task FetchInput(){
         // fetch the string provided by the user, sanitiy check it and deserialize 
-        Console.WriteLine("@bind: " + jsonInput + actionChoice); 
-        Console.WriteLine(); 
+        @* Console.WriteLine("@bind: " + jsonInput + actionChoice); 
+        Console.WriteLine();  *@
         // sanity check: only use valid json. 
 
         // deserialization and exceptions
         try {
             deserializedJson = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(jsonInput); 
-            Console.WriteLine("josn: " + deserializedJson);
+            @* Console.WriteLine("josn: " + deserializedJson); *@
             errorMessage = "";
         } catch (JsonException) {
             Console.WriteLine("Invalid JSON syntax. Please check your input.");
@@ -75,9 +79,52 @@
     } 
 
     private JsonElement ProcessJson(JsonElement json){
-        // do something 
+        if (actionChoice == KeyActionOption.RemoveEmptyKeys) {
+            json = RemoveEmptyKeys(json);  
+        }
 
         return json; 
+    } 
+
+    private JsonElement RemoveEmptyKeys(JsonElement json) {
+        @* takes a JsonElement and creates a new element without null values. 
+        returns a new JsonElement with the newly assembled data. *@
+        Dictionary<string, object> data = new Dictionary<string, object>(); 
+        if (json.ValueKind == JsonValueKind.Object) {
+        // access keys: EnumerateObject and JsonProperty 
+        // Memo short: 
+        // EnumerateObject() = iterate through all pairs inside the object
+        // JsonProperty = one key/value pair inside an object
+        // JsonElement = some JSON thing
+            foreach (JsonProperty property in json.EnumerateObject()){
+                Console.WriteLine(property.Name); 
+                // copy the values if they are not null
+                if (!hasNull(property)){
+                    data[property.Name] = property.Value; 
+                }
+            }
+            Console.WriteLine("data = " + JsonSerializer.Serialize(data)); 
+        }
+        if (json.ValueKind == JsonValueKind.Array) {
+        // do something with EnumerateArray() 
+        }
+        // primitive values 
+        // do something with primitive types like: 
+        if (json.ValueKind == JsonValueKind.String) {
+        // do something
+        }
+        if (json.ValueKind == JsonValueKind.Null) {
+        // do something
+        }
+        
+        return json; 
+    } 
+
+    private bool hasNull(JsonProperty property) {
+        if (property.Value.ValueKind == JsonValueKind.Null) {
+            Console.WriteLine("Null detected");
+            return true; 
+        } else return false; 
     }
 
     private void ProvideJsonOutput(JsonElement result) {
