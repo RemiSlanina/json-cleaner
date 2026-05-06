@@ -1,0 +1,73 @@
+﻿@page "/add"
+@rendermode InteractiveServer 
+@using System.Text.Json 
+
+@* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
+
+<PageTitle>Add</PageTitle>
+
+<h1>Add JSON</h1>
+
+<p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p>
+
+
+    <label for="user-input">Paste your </label>
+    <textarea @bind="jsonInput" name="user-input" id="user-input" cols="80" rows="10"></textarea> <br /><br />
+    @* or style with stlye:  <textarea name="user-input" id="user-input" style="width:200px; height:600px;">" *@
+    @* <label for="">Remove empty keys</label>
+    <input type="radio" id="Rremove-keys" value="remove-keys" name="object-keys" required> <br />
+    <label for="add-keys">Fill in missing keys</label>
+    <input type="radio" id="add-keys" value="add-keys" name="object-keys" required> <br /><br />  *@
+
+    <label for="object-keys">Select whether to remove or add empty keys in objects:</label>
+    <select @bind="actionChoice" name="object-keys" id="object-keys">
+        <option value="@KeyActionOption.RemoveEmptyKeys">Remove empty keys</option>
+        <option value="@KeyActionOption.FillMissingKeys">Fill in missing keys</option>
+    </select><br /><br />
+<button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
+
+<p>jsonInput: @jsonInput @actionChoice</p>
+
+
+@code {
+    private string jsonInput = ""; 
+    private KeyActionOption actionChoice = KeyActionOption.RemoveEmptyKeys; 
+    private JsonElement deserializedJson; 
+
+    private enum KeyActionOption 
+    {
+        RemoveEmptyKeys,
+        FillMissingKeys
+    }
+
+    private void FetchInput(){
+        // do something 
+        Console.WriteLine("This is a log message: " + jsonInput + actionChoice); 
+        Console.WriteLine(); 
+        // deserialization 
+        deserializedJson = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(jsonInput); 
+        Console.WriteLine("josn output: " + deserializedJson);
+    }
+
+    private void ProvideJsonOutput() {
+        // serialization  data → text 
+        // JsonSerializer.Serialize(...) 
+    }
+    
+}
+
+
+
+@* 
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+} *@

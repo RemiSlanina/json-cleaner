@@ -1,0 +1,17 @@
+# Dev notes 
+dev-notes/ 
+
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
