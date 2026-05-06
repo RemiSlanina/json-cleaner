@@ -2,7 +2,10 @@
 @rendermode InteractiveServer 
 @using System.Text.Json 
 @using System.Threading.Tasks
-@using System.Security.Cryptography
+@using System.Security.Cryptography 
+@using System.Text.Json.Nodes
+@using System.Text.Json.Serialization
+@using Microsoft.AspNetCore.Razor.TagHelpers
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
 
@@ -43,8 +46,9 @@
     private string jsonInput = ""; 
     private KeyActionOption actionChoice = KeyActionOption.RemoveEmptyKeys; 
     private string errorMessage { get; set; }  = ""; 
-    private JsonElement deserializedJson { get; set; } 
-    private JsonElement result { get; set; } 
+    @* private JsonElement deserializedJson { get; set; }  *@
+    private JsonNode? parsedJson { get; set; } = new JsonObject();   
+    private JsonNode? result { get; set; } = new JsonObject(); 
     private string serializedJson { get; set; }  = ""; 
 
     private enum KeyActionOption 
@@ -61,7 +65,9 @@
 
         // deserialization and exceptions
         try {
-            deserializedJson = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(jsonInput); 
+            @* deserializedJson = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(jsonInput); *@
+            if (jsonInput == "") return; 
+            parsedJson = JsonNode.Parse(jsonInput); 
             @* Console.WriteLine("josn: " + deserializedJson); *@
             errorMessage = "";
         } catch (JsonException) {
@@ -71,14 +77,16 @@
         }
 
         // process it depending on user input: 
-        result = ProcessJson(deserializedJson); 
+        @* result = ProcessJson(deserializedJson);  *@
+        result = parsedJson != null ? ProcessJson(parsedJson) : new JsonObject(); 
         await Task.Delay(millisecondsDelay: 1000);
         // serialize and output 
         ProvideJsonOutput(result); 
         
     } 
 
-    private JsonElement ProcessJson(JsonElement json){
+    private JsonNode ProcessJson(JsonNode json){
+        if (json == null) return new JsonObject(); 
         if (actionChoice == KeyActionOption.RemoveEmptyKeys) {
             json = RemoveEmptyKeys(json);  
         }
@@ -86,39 +94,44 @@
         return json; 
     } 
 
-    private JsonElement RemoveEmptyKeys(JsonElement json) {
+    private JsonNode RemoveEmptyKeys(JsonNode json) {
         @* takes a JsonElement and creates a new element without null values. 
         returns a new JsonElement with the newly assembled data. *@
-        Dictionary<string, object> data = new Dictionary<string, object>(); 
-        if (json.ValueKind == JsonValueKind.Object) {
+        @* Dictionary<string, object> data = new Dictionary<string, object>();  *@
+        JsonNode newData = new JsonObject(); 
+
+        // C# example: if (json is JsonArray jsonArray)
+        // = pattern matching with type checking and variable declaration
+        //Check the type of node (is it a JsonArray?).
+        //Declare a new variable (jsonArray) of that type, casted from json.
+
+        if (json is JsonObject jsonObject) {
         // access keys: EnumerateObject and JsonProperty 
-        // Memo short: 
-        // EnumerateObject() = iterate through all pairs inside the object
-        // JsonProperty = one key/value pair inside an object
-        // JsonElement = some JSON thing
-            foreach (JsonProperty property in json.EnumerateObject()){
-                Console.WriteLine(property.Name); 
+            foreach (var item in jsonObject){
+                Console.WriteLine(item.Key); 
                 // copy the values if they are not null
-                if (!hasNull(property)){
-                    data[property.Name] = property.Value; 
+                if (item.Value != null && !isEmptyValue(item.Value)) {
+                    newData[item.Key] = item.Value.DeepClone(); // otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() = parent = json (the original file) 
                 }
             }
-            Console.WriteLine("data = " + JsonSerializer.Serialize(data)); 
+            Console.WriteLine("data = " + JsonSerializer.Serialize(newData)); 
         }
-        if (json.ValueKind == JsonValueKind.Array) {
+        if (json is JsonArray) {
         // do something with EnumerateArray() 
         }
         // primitive values 
         // do something with primitive types like: 
-        if (json.ValueKind == JsonValueKind.String) {
-        // do something
-        }
-        if (json.ValueKind == JsonValueKind.Null) {
-        // do something
-        }
         
-        return json; 
+        return newData; 
     } 
+
+    private bool isEmptyValue(JsonNode node) {
+        if (node == null) return true; 
+        if (node is JsonValue jsonValue) {
+            return jsonValue.GetValueKind() == JsonValueKind.Null; 
+        }
+        return false; 
+    }
 
     private bool hasNull(JsonProperty property) {
         if (property.Value.ValueKind == JsonValueKind.Null) {
@@ -127,7 +140,8 @@
         } else return false; 
     }
 
-    private void ProvideJsonOutput(JsonElement result) {
+    private void ProvideJsonOutput(JsonNode? result) {
+        if (jsonInput == null) return; // or return null; if type -> JsonNode? 
         // serialization  data → text 
         // JsonSerializer.Serialize(...) 
         // without indentation in the console
