@@ -165,19 +165,17 @@
     @* Fill missing keys in arrays of objects
         using union of sibling keys *@
     private JsonNode? FillMissingKeys(JsonNode json){
-        // TO DO
+        // collect all keys from sibling objects
         HashSet<string> keys = new HashSet<string>{}; 
 
         if (json is JsonArray jsonArray) {
-            if (jsonArray == null) return jsonArray; 
+            // if (jsonArray == null) return jsonArray; 
             JsonArray newArray = new JsonArray(); 
+
             foreach(var arrayItem in jsonArray){
                 if (arrayItem is JsonObject jsonObject){
                     foreach (var objectItem in jsonObject) {
                         keys.Add(objectItem.Key); 
-                        @* if (objectItem.Value != null) { 
-                            keys.Add(objectItem.Key); 
-                        } *@
                     }
                 }
             }
@@ -187,12 +185,47 @@
         }
         Console.WriteLine(); 
 
-        return newArray;  
+        // rebuild every object ensuring every key exists 
+        // arrayItem = the object 
+        foreach (var arrayItem in jsonArray) {
+            // is it an array of objects? it could be null, so: 
+            if (arrayItem is not JsonObject) {
+               errorMessage = "Invalid input. Please use an array of objects!"; 
+                return null; 
+            }
+            @* if (arrayItem!.GetValueKind() != JsonValueKind.Object) {
+                errorMessage = "Invalid input. Please use an array of objects!"; 
+                return null; 
+            } *@
+            // else, copy to a new object to add to jsonArray later: 
+            JsonObject newObject = new JsonObject(); 
+
+            // for each known key: 
+            foreach (var key in keys){
+                // does the object contain the key? 
+                if (arrayItem is JsonObject obj && obj.ContainsKey(key)){
+                    if (arrayItem.GetValueKind() == JsonValueKind.Null) { // object could be null 
+                        Console.WriteLine("null value insie the object"); 
+                        newObject[key] = null; // otherwise, i would DeepClone null later
+                    } else if (obj[key] == null) { // value could be null 
+                        newObject[key] = null; // otherwise, i might still DeepClone null later (?)
+                    } else {
+                        newObject[key] = obj[key]!.DeepClone(); // arrayItem is the original object
+                    }
+                    
+                } else {
+                    newObject[key] = null; 
+                }
+            }
+            newArray.Add(newObject); 
         }
 
-
+        return newArray;  
+        }
         return json; 
     }
+
+
     private bool isEmptyValue(JsonNode node) {
         if (node == null) return true; 
         if (node is JsonValue jsonValue) {
