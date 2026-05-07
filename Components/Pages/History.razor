@@ -1,0 +1,63 @@
+﻿@page "/history"
+@using System.Text.Json.Nodes
+@inject IJSRuntime JS 
+
+<PageTitle>JSON History</PageTitle>
+
+<h1>JSON History</h1>
+
+<p>This component demonstrates history using localStorage.</p>
+
+@if (savedJsons == null)
+{
+    <p><em>Nothing to display...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <td>
+                    <h2>List of JSON files</h2>
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var savedJson in savedJsons)
+            {
+                <tr>
+                    <td>
+                        <pre>@savedJson?.ToJsonString()</pre>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    @* private JsonArray? savedJsons;  *@
+    private JsonNode[]? savedJsons;    
+    @*     
+    // for testing: 
+    private JsonNode?[] savedJsons = [
+        JsonNode.Parse("""{"name":"George"}""")
+    ]; 
+    *@
+
+    protected override async Task OnAfterRenderAsync(bool firstRender){
+        if (firstRender) {
+            var json = await JS.InvokeAsync<string>(
+                "localStorage.getItem", "latestJson");
+
+            if (!string.IsNullOrWhiteSpace(json)){
+                savedJsons = [JsonNode.Parse(json)!]; 
+                @* savedJsons = JsonNode.Parse(json) as JsonArray;  *@
+                StateHasChanged(); 
+            }
+        }
+
+    }
+}

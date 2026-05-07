@@ -7,6 +7,7 @@
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Razor.TagHelpers
 @using System.Runtime.InteropServices.ObjectiveC
+@inject IJSRuntime JS 
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
 
@@ -197,30 +198,30 @@
                 errorMessage = "Invalid input. Please use an array of objects!"; 
                 return null; 
             } *@
-            // else, copy to a new object to add to jsonArray later: 
-            JsonObject newObject = new JsonObject(); 
+                // else, copy to a new object to add to jsonArray later: 
+                JsonObject newObject = new JsonObject(); 
 
-            // for each known key: 
-            foreach (var key in keys){
-                // does the object contain the key? 
-                if (arrayItem is JsonObject obj && obj.ContainsKey(key)){
-                    if (arrayItem.GetValueKind() == JsonValueKind.Null) { // object could be null 
-                        Console.WriteLine("null value insie the object"); 
-                        newObject[key] = null; // otherwise, i would DeepClone null later
-                    } else if (obj[key] == null) { // value could be null 
-                        newObject[key] = null; // otherwise, i might still DeepClone null later (?)
+                // for each known key: 
+                foreach (var key in keys){
+                    // does the object contain the key? 
+                    if (arrayItem is JsonObject obj && obj.ContainsKey(key)){
+                        if (arrayItem.GetValueKind() == JsonValueKind.Null) { // object could be null 
+                            Console.WriteLine("null value insie the object"); 
+                            newObject[key] = null; // otherwise, i would DeepClone null later
+                        } else if (obj[key] == null) { // value could be null 
+                            newObject[key] = null; // otherwise, i might still DeepClone null later (?)
+                        } else {
+                            newObject[key] = obj[key]!.DeepClone(); // arrayItem is the original object
+                        }
+
                     } else {
-                        newObject[key] = obj[key]!.DeepClone(); // arrayItem is the original object
+                        newObject[key] = null; 
                     }
-                    
-                } else {
-                    newObject[key] = null; 
                 }
+                newArray.Add(newObject); 
             }
-            newArray.Add(newObject); 
-        }
 
-        return newArray;  
+            return newArray;  
         }
         return json; 
     }
@@ -234,7 +235,13 @@
         return false; 
     }
 
-    private void ProvideJsonOutput(JsonNode? result) {
+    private async Task WriteToLocalStorage(string serializedJson) {
+        await JS.InvokeVoidAsync(
+            "localStorage.setItem", "latestJson", serializedJson
+        ); 
+    }
+
+    private async Task ProvideJsonOutput(JsonNode? result) {
         if (jsonInput == null) return; // or return null; if type -> JsonNode? 
         // serialization  data → text 
         // JsonSerializer.Serialize(...) 
@@ -246,6 +253,12 @@
             { 
                 WriteIndented = true 
             });
+
+
+        await WriteToLocalStorage(serializedJson); 
+        @* var test = await JS.InvokeAsync<string>(
+                "localStorage.getItem", "latestJson");
+        Console.WriteLine("localStorae: " + test); *@
     }
 }
 
