@@ -20,7 +20,7 @@
 <p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p>
 
 
-    <label for="user-input">Paste your </label>
+    <label for="user-input">Paste your JSON</label> <br />
     <textarea @bind="jsonInput" name="user-input" id="user-input" cols="80" rows="10"></textarea> <br /><br />
     @* or style with stlye:  <textarea name="user-input" id="user-input" style="width:200px; height:600px;">" *@
 
@@ -108,12 +108,10 @@
             foreach (var item in jsonObject){
                 //Console.WriteLine(item.Key); 
                 // copy the values if they are not null
-                if (item.Value != null && !isEmptyValue(item.Value)) {
+                if (item.Value != null && !isEmptyValue(item.Value)) { // should empty values even survive? 
                     JsonNode? result = RemoveEmptyKeys(item.Value); 
-                    // clone : otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() 
-                    // = parent = json (the original file)
                     if (result != null) {  
-                    newObject[item.Key] = result.DeepClone();  
+                    newObject[item.Key] = result;
                     }
                 }
             }
@@ -135,9 +133,19 @@
         return newArray;  
         }
         // primitives
-        // do something with primitive types like: 
+        if (json is JsonValue jsonValue) {
+            // TODO
+            // clean it up optionall (cleaner function)
+            if (jsonValue.GetValueKind() == JsonValueKind.Null){
+                return null; 
+            }
+             
+            // clone : otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() 
+            // = parent = json (the original file)
+           return jsonValue.DeepClone(); 
+            
+        }
         
-        // nothing? return null... 
         return null; 
     } 
 
