@@ -85,7 +85,7 @@
         
     } 
 
-    private JsonNode ProcessJson(JsonNode json){
+    private JsonNode? ProcessJson(JsonNode? json){
         if (json == null) return new JsonObject(); 
         if (actionChoice == KeyActionOption.RemoveEmptyKeys) {
             json = RemoveEmptyKeys(json);  
@@ -94,35 +94,51 @@
         return json; 
     } 
 
-    private JsonNode RemoveEmptyKeys(JsonNode json) {
-        @* takes a JsonElement and creates a new element without null values. 
-        returns a new JsonElement with the newly assembled data. *@
-        @* Dictionary<string, object> data = new Dictionary<string, object>();  *@
-        JsonNode newData = new JsonObject(); 
-
-        // C# example: if (json is JsonArray jsonArray)
-        // = pattern matching with type checking and variable declaration
-        //Check the type of node (is it a JsonArray?).
-        //Declare a new variable (jsonArray) of that type, casted from json.
-
+    
+    @* takes a JsonElement and creates a new element without null values. 
+    returns a new JsonElement with the newly assembled data. *@
+    // C# example: if (json is JsonArray jsonArray)
+    // = pattern matching with type checking and variable declaration
+    //Check the type of node (is it a JsonArray?).
+    //Declare a new variable (jsonArray) of that type, casted from json.
+    private JsonNode? RemoveEmptyKeys(JsonNode json) {
+        // objects 
         if (json is JsonObject jsonObject) {
-        // access keys: EnumerateObject and JsonProperty 
+            JsonObject newObject = new JsonObject();
             foreach (var item in jsonObject){
-                Console.WriteLine(item.Key); 
+                //Console.WriteLine(item.Key); 
                 // copy the values if they are not null
                 if (item.Value != null && !isEmptyValue(item.Value)) {
-                    newData[item.Key] = item.Value.DeepClone(); // otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() = parent = json (the original file) 
+                    JsonNode? result = RemoveEmptyKeys(item.Value); 
+                    // clone : otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() 
+                    // = parent = json (the original file)
+                    if (result != null) {  
+                    newObject[item.Key] = result.DeepClone();  
+                    }
                 }
             }
-            Console.WriteLine("data = " + JsonSerializer.Serialize(newData)); 
+            Console.WriteLine("data = " + JsonSerializer.Serialize(newObject)); 
+            return newObject; 
         }
-        if (json is JsonArray) {
-        // do something with EnumerateArray() 
+        // arrays 
+        if (json is JsonArray jsonArray) {
+            JsonArray newArray = new JsonArray(); 
+            foreach(var item in jsonArray) {
+                if (item != null) {
+                    JsonNode? result = RemoveEmptyKeys(item); 
+                    if (result != null) {
+                        // add entry 
+                        newArray.Add(result); 
+                    }
+                }
+            }
+        return newArray;  
         }
-        // primitive values 
+        // primitives
         // do something with primitive types like: 
         
-        return newData; 
+        // nothing? return null... 
+        return null; 
     } 
 
     private bool isEmptyValue(JsonNode node) {

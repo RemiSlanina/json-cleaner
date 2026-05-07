@@ -1,0 +1,22 @@
+{
+  "SPO2": -5,
+  "VitalGroupID": "unknown",
+  "Temperature": "HOT",
+  "DateTimeTaken": "",
+  "UserID": null,
+  "Height": [],
+  "UserName": "    ",
+  "BloodPressureDiastolic": 999,
+  "Weight": 0.000001,
+  "TemperatureMethod": false,
+  "Resprate": null,
+  "HeartRate": "tachycardia maybe",
+  "BloodPressurePosition": {},
+  "VitalSite": "???",
+  "VitalID": 1,
+  "Laterality": "Sideways",
+  "HeartRateRegularity": "",
+  "HeadCircumference": "",
+  "BloodPressureSystolic": -20,
+  "CuffSize": null
+}

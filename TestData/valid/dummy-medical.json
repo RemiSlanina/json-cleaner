@@ -1,0 +1,22 @@
+{
+  "SPO2": 97.4,
+  "VitalGroupID": 8421,
+  "Temperature": 37.12891,
+  "DateTimeTaken": "/Date(1687429200000+0200)/",
+  "UserID": 404,
+  "Height": 173.2,
+  "UserName": "TestSubjectDelta",
+  "BloodPressureDiastolic": 77,
+  "Weight": 81234.567,
+  "TemperatureMethod": "Temporal",
+  "Resprate": 18,
+  "HeartRate": 63,
+  "BloodPressurePosition": "Sitting",
+  "VitalSite": "Radial",
+  "VitalID": 9917,
+  "Laterality": "Left",
+  "HeartRateRegularity": "Irregular",
+  "HeadCircumference": null,
+  "BloodPressureSystolic": 118,
+  "CuffSize": "Medium"
+}
