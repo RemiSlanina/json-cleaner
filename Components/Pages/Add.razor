@@ -6,6 +6,7 @@
 @using System.Text.Json.Nodes
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Razor.TagHelpers
+@using System.Runtime.InteropServices.ObjectiveC
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
 
@@ -17,7 +18,8 @@
 
 <p>@errorMessage</p>
 
-<p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p>
+<p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p> 
+<p>Fill missing keys works in arrays of objects in this version of the app.</p>
 
 
     <label for="user-input">Paste your JSON</label> <br />
@@ -89,6 +91,9 @@
         if (json == null) return new JsonObject(); 
         if (actionChoice == KeyActionOption.RemoveEmptyKeys) {
             json = RemoveEmptyKeys(json);  
+        } 
+        if (actionChoice == KeyActionOption.FillMissingKeys) {
+            json = FillMissingKeys(json!); // ! = null-forgiving operator = trust me, compiler, can't be null. 
         }
 
         return json; 
@@ -102,6 +107,8 @@
     //Check the type of node (is it a JsonArray?).
     //Declare a new variable (jsonArray) of that type, casted from json.
     private JsonNode? RemoveEmptyKeys(JsonNode json) {
+        // examin objects, arrays and primitive values 
+
         // objects 
         if (json is JsonObject jsonObject) {
             JsonObject newObject = new JsonObject();
@@ -136,6 +143,11 @@
         if (json is JsonValue jsonValue) {
             // TODO
             // clean it up optionall (cleaner function)
+            @* trim whitespace
+                remove empty strings
+                normalize numbers
+                remove empty arrays/objects 
+            *@
             if (jsonValue.GetValueKind() == JsonValueKind.Null){
                 return null; 
             }
@@ -149,19 +161,44 @@
         return null; 
     } 
 
+
+    @* Fill missing keys in arrays of objects
+        using union of sibling keys *@
+    private JsonNode? FillMissingKeys(JsonNode json){
+        // TO DO
+        HashSet<string> keys = new HashSet<string>{}; 
+
+        if (json is JsonArray jsonArray) {
+            if (jsonArray == null) return jsonArray; 
+            JsonArray newArray = new JsonArray(); 
+            foreach(var arrayItem in jsonArray){
+                if (arrayItem is JsonObject jsonObject){
+                    foreach (var objectItem in jsonObject) {
+                        keys.Add(objectItem.Key); 
+                        @* if (objectItem.Value != null) { 
+                            keys.Add(objectItem.Key); 
+                        } *@
+                    }
+                }
+            }
+        Console.WriteLine(); 
+        foreach (var key in keys) {
+            Console.WriteLine("hashSet key: " + key); 
+        }
+        Console.WriteLine(); 
+
+        return newArray;  
+        }
+
+
+        return json; 
+    }
     private bool isEmptyValue(JsonNode node) {
         if (node == null) return true; 
         if (node is JsonValue jsonValue) {
             return jsonValue.GetValueKind() == JsonValueKind.Null; 
         }
         return false; 
-    }
-
-    private bool hasNull(JsonProperty property) {
-        if (property.Value.ValueKind == JsonValueKind.Null) {
-            Console.WriteLine("Null detected");
-            return true; 
-        } else return false; 
     }
 
     private void ProvideJsonOutput(JsonNode? result) {
