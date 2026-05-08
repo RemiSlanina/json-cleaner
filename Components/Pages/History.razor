@@ -58,12 +58,20 @@ else if (savedJsons == null || savedJsons.Length == 0) {
             try {
                 string? json = await JS.InvokeAsync<string>(
                         "localStorage.getItem", "latestJson");
-                savedJsons = [JsonNode.Parse(json)!];  
 
                 if (string.IsNullOrWhiteSpace(json)){
                     savedJsons = [];
                     return;
+                } 
+
+                if (savedJsons == null || savedJsons.Length == 0) {
+                    savedJsons = [JsonNode.Parse(json)!];  
                 }
+                else {
+                    savedJsons = [..savedJsons, JsonNode.Parse(json)!];
+                }
+
+                savedJsons = [JsonNode.Parse(json)!];  
 
             } catch (JsonException) {
                 Console.WriteLine("Ivalid JSON. Cannot load savedJsons to History."); 
