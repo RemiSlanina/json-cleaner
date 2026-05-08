@@ -16,37 +16,39 @@
 <PageTitle>Add</PageTitle>
 
 <h1>Add JSON</h1> 
+<section class="input-section">
+    <h2>Input</h2>
 
-<h2>Input</h2>
+    <p>@errorMessage</p>
 
-<p>@errorMessage</p>
-
-<p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p> 
-<p>Fill missing keys works in arrays of objects in this version of the app.</p>
+    <p>This small cleaner app analyzes your JSON data and lets you either fill in missing keys or remove empty ones.</p> 
+    <p>Fill missing keys works in arrays of objects in this version of the app.</p>
 
 
-    <label for="user-input">Paste your JSON</label> <br />
-    <textarea @bind="jsonInput" name="user-input" id="user-input" cols="80" rows="10"></textarea> <br /><br />
-    @* or style with stlye:  <textarea name="user-input" id="user-input" style="width:200px; height:600px;">" *@
+        <label for="user-input">Paste your JSON</label> <br />
+        <textarea @bind="jsonInput" name="user-input" id="user-input" rows="8"></textarea> <br /><br />
 
-    <label for="object-keys">Select whether to remove or add empty keys in objects:</label>
-    <select @bind="actionChoice" name="object-keys" id="object-keys">
-        <option value="@KeyActionOption.RemoveEmptyKeys">Remove empty keys</option>
-        <option value="@KeyActionOption.FillMissingKeys">Fill in missing keys</option>
-    </select><br /><br />
-<button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
-
+        <div class="controls">
+            <label for="object-keys">Select whether to remove or add empty keys in objects:</label>
+            <select @bind="actionChoice" name="object-keys" id="object-keys">
+                <option value="@KeyActionOption.RemoveEmptyKeys">Remove empty keys</option>
+                <option value="@KeyActionOption.FillMissingKeys">Fill in missing keys</option>
+            </select><br /><br />
+        <button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
+    </div>
+</section>
 @* 
 <h2>Debugging</h2>
 <p>Debug jsonInput: @jsonInput @actionChoice</p><br /><br /> 
 <hr> *@
 
-<h2>Output</h2>
-<p>Changes made: @changesMade</p> <br />  <br /> 
-<hr> <br /> <br />
-<pre>@serializedJson</pre> <br />  <br /> 
-<hr>
-
+<section class="output-section">
+    <h2>Output</h2>
+    <p>Changes made: @changesMade</p> 
+    <hr> 
+    <pre>@serializedJson</pre>  
+    <hr>
+</section>
 
 @code {
     private string jsonInput = ""; 
