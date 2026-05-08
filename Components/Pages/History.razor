@@ -60,23 +60,11 @@ else if (savedJsons == null || savedJsons.Count == 0) {
                     return;
                 } 
                 savedJsons = JsonSerializer.Deserialize<List<SavedJson>>(json) ?? []; 
-
-                @* if (savedJsons == null || savedJsons.Count == 0) {
-                    savedJsons = [JsonNode.Parse(json)!];   
-                }
-                else {
-                    savedJsons = [..savedJsons, JsonNode.Parse(json)!];
-                } *@
-
-                @* savedJsons = [JsonNode.Parse(json)!];   *@
-
             } catch (JsonException) {
                 loadErrors = "Ivalid JSON. Cannot load savedJsons to History.";
                 Console.WriteLine(loadErrors); 
             }
-            
             StateHasChanged(); 
         }
-
     }
 }

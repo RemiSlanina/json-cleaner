@@ -53,7 +53,6 @@
     private KeyActionOption actionChoice = KeyActionOption.RemoveEmptyKeys; 
     private int changesMade { get; set; } = 0; 
     private string errorMessage { get; set; }  = ""; 
-    @* private JsonElement deserializedJson { get; set; }  *@
     private JsonNode? parsedJson { get; set; } = new JsonObject();   
     private JsonNode? result { get; set; } = new JsonObject(); 
     private string serializedJson { get; set; }  = ""; 
@@ -65,16 +64,12 @@
         FillMissingKeys
     }
 
+    // fetch the string provided by the user, sanitiy check it and deserialize 
     private async Task FetchInput(){
         changesMade = 0; // reset counter for each turn 
-        // fetch the string provided by the user, sanitiy check it and deserialize 
-        @* Console.WriteLine("@bind: " + jsonInput + actionChoice); 
-        Console.WriteLine();  *@
         // sanity check: only use valid json. 
-
         // deserialization and exceptions
         try {
-            @* deserializedJson = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(jsonInput); *@
             if (jsonInput == "") return; 
             parsedJson = JsonNode.Parse(jsonInput); 
             @* Console.WriteLine("josn: " + deserializedJson); *@
@@ -84,14 +79,11 @@
             errorMessage = "Invalid JSON syntax. Please check your input.";
             return; 
         }
-
         // process it depending on user input: 
-        @* result = ProcessJson(deserializedJson);  *@
         result = parsedJson != null ? ProcessJson(parsedJson) : new JsonObject(); 
-        await Task.Delay(millisecondsDelay: 1000);
+        @* await Task.Delay(millisecondsDelay: 500); *@
         // serialize and output 
         await ProvideJsonOutput(result); 
-        
     } 
 
     private JsonNode? ProcessJson(JsonNode? json){
@@ -100,7 +92,7 @@
             json = RemoveEmptyKeys(json);  
         } 
         if (actionChoice == KeyActionOption.FillMissingKeys) {
-            json = FillMissingKeys(json!); // ! = null-forgiving operator = trust me, compiler, can't be null. 
+            json = FillMissingKeys(json!); // ! = null-forgiving operator 
         }
 
         return json; 
@@ -113,24 +105,37 @@
     // = pattern matching with type checking and variable declaration
     //Check the type of node (is it a JsonArray?).
     //Declare a new variable (jsonArray) of that type, casted from json.
-    private JsonNode? RemoveEmptyKeys(JsonNode json) {
-        // examin objects, arrays and primitive values 
-
+    @* 
+    examins objects, arrays and primitive values 
+    
+    Parent calls recursion on child, child returns value or null: 
+    Now the parent decides:
+    child returned data → keep it
+    child returned null → omit it 
+    ...
+    traversing old structure
+    building a new cleaned structure
+    selectively copying survivors *@
+    private JsonNode? RemoveEmptyKeys(JsonNode? json) {
+        // examin objects, arrays and primitive values
+        if (json == null) {
+            return null; // don't continue if it's null 
+            // this does not count for recursion (no ommitted line)
+        } 
         // objects 
         if (json is JsonObject jsonObject) {
             JsonObject newObject = new JsonObject();
             foreach (var item in jsonObject){
                 //Console.WriteLine(item.Key); 
                 // copy the values if they are not null
-                if (item.Value != null && !isEmptyValue(item.Value)) { // should empty values even survive? 
-                    JsonNode? result = RemoveEmptyKeys(item.Value); 
-                    if (result != null) {  
+                // Parente: I chose not to copy this property.
+                JsonNode? result = RemoveEmptyKeys(item.Value); 
+                if  (result != null) {  // recursion : did the value return null? 
                     newObject[item.Key] = result;
-                    } 
                 } else {
-                        // when no copy is made, changesMade++ 
-                        changesMade++;   // wrong 
-                    }
+                    // when no copy is made, changesMade++ 
+                    changesMade++;  
+                }
             }
             Console.WriteLine("data = " + JsonSerializer.Serialize(newObject)); 
             return newObject; 
@@ -139,23 +144,23 @@
         if (json is JsonArray jsonArray) {
             JsonArray newArray = new JsonArray(); 
             foreach(var item in jsonArray) {
-                if (item != null) {
-                    JsonNode? result = RemoveEmptyKeys(item); 
-                    if (result != null) {
+                JsonNode? result = RemoveEmptyKeys(item); 
+                if (result != null) {
                         // add entry 
                         newArray.Add(result); 
-                    } 
-                } else {
-                        changesMade++;   // wrong 
-                    }
+                    
+                } else { // when no copy is made, changesMade++ 
+                    changesMade++;   
+                }
             }
         return newArray;  
         }
         // primitives
         if (json is JsonValue jsonValue) {
-            // TODO
-            // clean it up optionall (cleaner function)
-            @* trim whitespace
+            @* // TODO
+                // clean it up optionall (cleaner function)
+                f.e. :
+                trim whitespace
                 remove empty strings
                 normalize numbers
                 remove empty arrays/objects 
@@ -204,10 +209,6 @@
                errorMessage = "Invalid input. Please use an array of objects!"; 
                 return null; 
             }
-            @* if (arrayItem!.GetValueKind() != JsonValueKind.Object) {
-                errorMessage = "Invalid input. Please use an array of objects!"; 
-                return null; 
-            } *@
                 // else, copy to a new object to add to jsonArray later: 
                 JsonObject newObject = new JsonObject(); 
 
@@ -258,7 +259,6 @@
 
     private async Task ProvideJsonOutput(JsonNode? result) {
         if (jsonInput == null) return; // or return null; if type -> JsonNode? 
-
 
         // serialization  data → text 
         // JsonSerializer.Serialize(...) 
