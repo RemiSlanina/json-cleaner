@@ -32,15 +32,9 @@ else if (savedJsons == null || savedJsons.Count == 0) {
             {
                 <tr>
                     <td>
+                        <p>Created: @savedJson.CreatedAt.ToString("yyyy-MM-dd HH:mm")</p>
+                        <p>Changes made: @savedJson.Changes</p>
                         <pre>@savedJson.Json</pre>
-                        @* <pre>@savedJson?.ToJsonString()</pre> *@
-                        @* <pre>
-                            @savedJson?.ToJsonString(
-                                new JsonSerializerOptions{
-                                    WriteIndented = true
-                                }
-                            )
-                        </pre> *@
                     </td>
 
                 </tr>
