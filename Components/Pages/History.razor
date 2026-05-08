@@ -1,5 +1,7 @@
 ﻿@page "/history"
 @using System.Text.Json.Nodes
+@using System.Text.Json
+@rendermode InteractiveServer 
 @inject IJSRuntime JS 
 
 <PageTitle>JSON History</PageTitle>
@@ -27,7 +29,14 @@ else
             {
                 <tr>
                     <td>
-                        <pre>@savedJson?.ToJsonString()</pre>
+                        @* <pre>@savedJson?.ToJsonString()</pre> *@
+                        <pre>
+                            @savedJson?.ToJsonString(
+                                new JsonSerializerOptions{
+                                    WriteIndented = true
+                                }
+                            )
+                        </pre>
                     </td>
 
                 </tr>
@@ -49,12 +58,15 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender){
         if (firstRender) {
-            var json = await JS.InvokeAsync<string>(
+            string? json = await JS.InvokeAsync<string>(
                 "localStorage.getItem", "latestJson");
 
             if (!string.IsNullOrWhiteSpace(json)){
-                savedJsons = [JsonNode.Parse(json)!]; 
-                @* savedJsons = JsonNode.Parse(json) as JsonArray;  *@
+                try {
+                    savedJsons = [JsonNode.Parse(json)!]; 
+                } catch (JsonException) {
+                    Console.WriteLine("Ivalid JSON. Cannot load savedJsons to History."); 
+                }
                 StateHasChanged(); 
             }
         }
