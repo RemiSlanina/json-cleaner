@@ -7,6 +7,7 @@
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Razor.TagHelpers
 @using System.Runtime.InteropServices.ObjectiveC
+@using CleanJsonApp.Models
 @inject IJSRuntime JS 
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
@@ -53,6 +54,7 @@
     private JsonNode? parsedJson { get; set; } = new JsonObject();   
     private JsonNode? result { get; set; } = new JsonObject(); 
     private string serializedJson { get; set; }  = ""; 
+    private List <SavedJson> savedJsons = []; 
 
     private enum KeyActionOption 
     {
@@ -84,7 +86,7 @@
         result = parsedJson != null ? ProcessJson(parsedJson) : new JsonObject(); 
         await Task.Delay(millisecondsDelay: 1000);
         // serialize and output 
-        ProvideJsonOutput(result); 
+        await ProvideJsonOutput(result); 
         
     } 
 
@@ -235,14 +237,19 @@
         return false; 
     }
 
-    private async Task WriteToLocalStorage(string serializedJson) {
+    private async Task WriteToLocalStorage(List<SavedJson> savedJsons) {
+        // make string: 
+        string storageJson = JsonSerializer.Serialize(savedJsons); 
+        // save
         await JS.InvokeVoidAsync(
-            "localStorage.setItem", "latestJson", serializedJson
+            "localStorage.setItem", "savedJsons", storageJson
         ); 
     }
 
     private async Task ProvideJsonOutput(JsonNode? result) {
         if (jsonInput == null) return; // or return null; if type -> JsonNode? 
+
+
         // serialization  data → text 
         // JsonSerializer.Serialize(...) 
         // without indentation in the console
@@ -254,11 +261,15 @@
                 WriteIndented = true 
             });
 
-
-        await WriteToLocalStorage(serializedJson); 
+        savedJsons.Add(new SavedJson {
+            Json = serializedJson, CreatedAt = DateTime.Now
+        });
+        await WriteToLocalStorage(savedJsons); 
         @* var test = await JS.InvokeAsync<string>(
                 "localStorage.getItem", "latestJson");
         Console.WriteLine("localStorae: " + test); *@
     }
+
+
 }
 

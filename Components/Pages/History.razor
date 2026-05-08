@@ -2,6 +2,7 @@
 @using System.Text.Json.Nodes
 @using System.Text.Json
 @rendermode InteractiveServer 
+@using CleanJsonApp.Models
 @inject IJSRuntime JS 
 
 <PageTitle>JSON History</PageTitle>
@@ -14,7 +15,7 @@
 {
     <p><em>@loadErrors</em></p>
 }
-else if (savedJsons == null || savedJsons.Length == 0) {
+else if (savedJsons == null || savedJsons.Count == 0) {
     <p><em>Nothing to display... No saved JSON found.</em></p>
 } else 
 {
@@ -31,14 +32,15 @@ else if (savedJsons == null || savedJsons.Length == 0) {
             {
                 <tr>
                     <td>
+                        <pre>@savedJson.Json</pre>
                         @* <pre>@savedJson?.ToJsonString()</pre> *@
-                        <pre>
+                        @* <pre>
                             @savedJson?.ToJsonString(
                                 new JsonSerializerOptions{
                                     WriteIndented = true
                                 }
                             )
-                        </pre>
+                        </pre> *@
                     </td>
 
                 </tr>
@@ -49,7 +51,7 @@ else if (savedJsons == null || savedJsons.Length == 0) {
 
 @code {
 
-    private JsonNode[]? savedJsons;    
+    private List<SavedJson> savedJsons = [];    
     private string? loadErrors; 
 
     protected override async Task OnAfterRenderAsync(bool firstRender){
@@ -57,24 +59,26 @@ else if (savedJsons == null || savedJsons.Length == 0) {
 
             try {
                 string? json = await JS.InvokeAsync<string>(
-                        "localStorage.getItem", "latestJson");
+                        "localStorage.getItem", "savedJsons");
 
                 if (string.IsNullOrWhiteSpace(json)){
                     savedJsons = [];
                     return;
                 } 
+                savedJsons = JsonSerializer.Deserialize<List<SavedJson>>(json) ?? []; 
 
-                if (savedJsons == null || savedJsons.Length == 0) {
-                    savedJsons = [JsonNode.Parse(json)!];  
+                @* if (savedJsons == null || savedJsons.Count == 0) {
+                    savedJsons = [JsonNode.Parse(json)!];   
                 }
                 else {
                     savedJsons = [..savedJsons, JsonNode.Parse(json)!];
-                }
+                } *@
 
-                savedJsons = [JsonNode.Parse(json)!];  
+                @* savedJsons = [JsonNode.Parse(json)!];   *@
 
             } catch (JsonException) {
-                Console.WriteLine("Ivalid JSON. Cannot load savedJsons to History."); 
+                loadErrors = "Ivalid JSON. Cannot load savedJsons to History.";
+                Console.WriteLine(loadErrors); 
             }
             
             StateHasChanged(); 
