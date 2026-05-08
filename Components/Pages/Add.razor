@@ -36,12 +36,13 @@
     </select><br /><br />
 <button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
 
-
+@* 
 <h2>Debugging</h2>
 <p>Debug jsonInput: @jsonInput @actionChoice</p><br /><br /> 
-<hr>
+<hr> *@
 
 <h2>Output</h2>
+<p>Changes made: @changesMade</p> <br />  <br /> 
 <hr> <br /> <br />
 <pre>@serializedJson</pre> <br />  <br /> 
 <hr>
@@ -50,6 +51,7 @@
 @code {
     private string jsonInput = ""; 
     private KeyActionOption actionChoice = KeyActionOption.RemoveEmptyKeys; 
+    private int changesMade { get; set; } = 0; 
     private string errorMessage { get; set; }  = ""; 
     @* private JsonElement deserializedJson { get; set; }  *@
     private JsonNode? parsedJson { get; set; } = new JsonObject();   
@@ -64,6 +66,7 @@
     }
 
     private async Task FetchInput(){
+        changesMade = 0; // reset counter for each turn 
         // fetch the string provided by the user, sanitiy check it and deserialize 
         @* Console.WriteLine("@bind: " + jsonInput + actionChoice); 
         Console.WriteLine();  *@
@@ -123,8 +126,11 @@
                     JsonNode? result = RemoveEmptyKeys(item.Value); 
                     if (result != null) {  
                     newObject[item.Key] = result;
+                    } 
+                } else {
+                        // when no copy is made, changesMade++ 
+                        changesMade++;   // wrong 
                     }
-                }
             }
             Console.WriteLine("data = " + JsonSerializer.Serialize(newObject)); 
             return newObject; 
@@ -138,8 +144,10 @@
                     if (result != null) {
                         // add entry 
                         newArray.Add(result); 
+                    } 
+                } else {
+                        changesMade++;   // wrong 
                     }
-                }
             }
         return newArray;  
         }
@@ -161,7 +169,6 @@
            return jsonValue.DeepClone(); 
             
         }
-        
         return null; 
     } 
 
@@ -208,6 +215,7 @@
                 foreach (var key in keys){
                     // does the object contain the key? 
                     if (arrayItem is JsonObject obj && obj.ContainsKey(key)){
+                        // object contains key 
                         if (arrayItem.GetValueKind() == JsonValueKind.Null) { // object could be null 
                             Console.WriteLine("null value insie the object"); 
                             newObject[key] = null; // otherwise, i would DeepClone null later
@@ -219,6 +227,7 @@
 
                     } else {
                         newObject[key] = null; 
+                        changesMade++; 
                     }
                 }
                 newArray.Add(newObject); 
@@ -267,7 +276,7 @@
             return;
         }
         savedJsons.Add(new SavedJson {
-            Json = serializedJson, CreatedAt = DateTime.Now
+            Json = serializedJson, CreatedAt = DateTime.Now, Changes = changesMade
         });
         await WriteToLocalStorage(savedJsons); 
     }
