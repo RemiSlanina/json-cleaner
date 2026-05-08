@@ -5,6 +5,7 @@
 @using System.Security.Cryptography 
 @using System.Text.Json.Nodes
 @using System.Text.Json.Serialization
+@using Microsoft.AspNetCore.Http.HttpResults
 @using Microsoft.AspNetCore.Razor.TagHelpers
 @using System.Runtime.InteropServices.ObjectiveC
 @using CleanJsonApp.Models
@@ -54,7 +55,7 @@
     private JsonNode? parsedJson { get; set; } = new JsonObject();   
     private JsonNode? result { get; set; } = new JsonObject(); 
     private string serializedJson { get; set; }  = ""; 
-    private List <SavedJson> savedJsons = []; 
+    private List <SavedJson>? savedJsons; 
 
     private enum KeyActionOption 
     {
@@ -261,15 +262,31 @@
                 WriteIndented = true 
             });
 
+        if (savedJsons == null) {
+            errorMessage = "Null Reference writing Json to Output (savedJsons)";
+            return;
+        }
         savedJsons.Add(new SavedJson {
             Json = serializedJson, CreatedAt = DateTime.Now
         });
         await WriteToLocalStorage(savedJsons); 
-        @* var test = await JS.InvokeAsync<string>(
-                "localStorage.getItem", "latestJson");
-        Console.WriteLine("localStorae: " + test); *@
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            string? json = await JS.InvokeAsync<string?>("localStorage.getItem", "savedJsons"); 
+                // can be null too <string?>
+            if (string.IsNullOrWhiteSpace(json)) {
+                // don't do this 
+                Console.WriteLine(); 
+                Console.WriteLine("empty stoarage"); 
+                Console.WriteLine(); 
+                return; 
+            }
+            savedJsons = JsonSerializer.Deserialize<List<SavedJson>>(json) ?? []; 
+        }
+        StateHasChanged(); 
+    }
 
 }
 

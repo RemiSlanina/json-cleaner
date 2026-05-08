@@ -51,14 +51,14 @@ else if (savedJsons == null || savedJsons.Count == 0) {
 
 @code {
 
-    private List<SavedJson> savedJsons = [];    
+    private List<SavedJson>? savedJsons;    
     private string? loadErrors; 
 
     protected override async Task OnAfterRenderAsync(bool firstRender){
         if (firstRender) {
 
             try {
-                string? json = await JS.InvokeAsync<string>(
+                string? json = await JS.InvokeAsync<string?>(
                         "localStorage.getItem", "savedJsons");
 
                 if (string.IsNullOrWhiteSpace(json)){
