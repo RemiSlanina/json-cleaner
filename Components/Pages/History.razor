@@ -10,11 +10,13 @@
 
 <p>This component demonstrates history using localStorage.</p>
 
-@if (savedJsons == null)
+@if (loadErrors != null)
 {
-    <p><em>Nothing to display...</em></p>
+    <p><em>@loadErrors</em></p>
 }
-else
+else if (savedJsons == null || savedJsons.Length == 0) {
+    <p><em>Nothing to display... No saved JSON found.</em></p>
+} else 
 {
     <table class="table">
         <thead>
@@ -47,28 +49,27 @@ else
 
 @code {
 
-    @* private JsonArray? savedJsons;  *@
     private JsonNode[]? savedJsons;    
-    @*     
-    // for testing: 
-    private JsonNode?[] savedJsons = [
-        JsonNode.Parse("""{"name":"George"}""")
-    ]; 
-    *@
+    private string? loadErrors; 
 
     protected override async Task OnAfterRenderAsync(bool firstRender){
         if (firstRender) {
-            string? json = await JS.InvokeAsync<string>(
-                "localStorage.getItem", "latestJson");
 
-            if (!string.IsNullOrWhiteSpace(json)){
-                try {
-                    savedJsons = [JsonNode.Parse(json)!]; 
-                } catch (JsonException) {
-                    Console.WriteLine("Ivalid JSON. Cannot load savedJsons to History."); 
+            try {
+                string? json = await JS.InvokeAsync<string>(
+                        "localStorage.getItem", "latestJson");
+                savedJsons = [JsonNode.Parse(json)!];  
+
+                if (string.IsNullOrWhiteSpace(json)){
+                    savedJsons = [];
+                    return;
                 }
-                StateHasChanged(); 
+
+            } catch (JsonException) {
+                Console.WriteLine("Ivalid JSON. Cannot load savedJsons to History."); 
             }
+            
+            StateHasChanged(); 
         }
 
     }
