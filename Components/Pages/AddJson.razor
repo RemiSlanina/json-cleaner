@@ -76,10 +76,13 @@
         RemoveTrailingZero, 
         DiscardNull
     }
+    private class TraverseResult // for use in func TraverseTree (todo)
+    {
+        public bool Remove { get; set; } 
+        public JsonNode? Value { get; set; }
+    }
     private List<CleanAction>? cleanActions { get; set; } 
     @* private List<CleanAction>? cleanActions { get; set; } = new List<CleanAction>();  *@
-
-
     private string debugging = ""; 
 
 
@@ -172,8 +175,15 @@
         return json; 
     }
 
+    // -----------------------------------------------------------
+    // to-do 
+    // there is a bug where null values accidentally get removed 
+    // use TraverseResult instead of JsonNode? (null) as return type 
+    // -----------------------------------------------------------
+    // ->(bool Remove, JsonNode? Value)
     private JsonNode? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
-        if (json == null) return null; 
+        @* if (json == null) return null;  *@
+        Console.WriteLine("-----------------------------------------------"); 
 
         if (json is JsonObject jsonObject) {
             @* debugging = "jsonObject reached"; *@
