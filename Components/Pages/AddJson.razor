@@ -1,4 +1,4 @@
-﻿@page "/add"
+﻿@page "/add-json"
 @rendermode InteractiveServer 
 @using System.Text.Json 
 @using System.Threading.Tasks
@@ -90,7 +90,7 @@
 
     private JsonNode? ProcessJson(JsonNode? json){
         if (json == null) return new JsonObject(); 
-        if (actionChoice == KeyActionOption.RemoveEmptyKeys) {
+        if (actionChoice == KeyActionOption.RemoveEmptyKeys) { 
             json = RemoveEmptyKeys(json);  
         } 
         if (actionChoice == KeyActionOption.FillMissingKeys) {
