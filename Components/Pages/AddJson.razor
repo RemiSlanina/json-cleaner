@@ -27,15 +27,36 @@
 
 
         <label for="user-input">Paste your JSON</label> <br />
-        <textarea @bind="jsonInput" name="user-input" id="user-input" rows="8"></textarea> <br /><br />
+        <textarea @bind="jsonInput" name="user-input" id="user-input" rows="8"></textarea> <br />
 
         <div class="controls">
+             @* RemoveEmptyStrings and so on will get RADIO BUTTONS here. can be added in addition to the select options *@ 
+             // currently hard coded... 
+             // later add like this and add to list: cleanActions 
+            @* <label for="empty-strings">Remove Empty Strings</label>
+            <input name="empty-strings" id="empty-strings" value="@CleanAction.RemoveEmptyStrings" type="radio"> <br /> *@
+            @*  STRUCTURE: 
+                mutually exclusive mutations: 
+                MODE (exclusive)
+                - FillMissingKeys
+                - RemoveEmptyKeys
+                - None
+                
+                not mutually exclusive (add radio buttons for these)
+                CLEANERS (composable)
+                - RemoveEmptyStrings
+                - TrimWhitespace
+                - RemoveEmptyArrays 
+                - and so on..
+                *@
+            @* the below options are mutually exclusive: *@
             <label for="object-keys">Select whether to remove or add empty keys in objects:</label>
             <select @bind="actionChoice" name="object-keys" id="object-keys">
                 <option value="@KeyActionOption.None">None</option>
                 <option value="@KeyActionOption.RemoveEmptyKeys">Remove empty keys</option>
                 <option value="@KeyActionOption.FillMissingKeys">Fill in missing keys</option>
-            </select><br /><br />
+            </select>
+
         <button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
     </div>
 </section>
@@ -112,6 +133,34 @@
         await ProvideJsonOutput(result); 
     } 
 
+        @* @ProcessJson:
+        Currently calls 3 functions: 
+        calls RemoveEmptyKeys (old recursive function).
+        OR FillMissingKeys (mutually exclusive)
+        then calls: 
+        calls TraverseTree and this calls CleanJson (performs other cleaning)
+        
+        TraverseTree:
+        - walk structure
+        - rebuild structure
+        - propagate removal decisions upward
+
+       CleanJson:
+        - decide whether primitive node survives 
+        -----------------------------------------
+        mutually exclusive: 
+        MODE (exclusive)
+        - FillMissingKeys
+        - RemoveEmptyKeys
+        - None
+        
+        can be compound: (add radio buttons)
+        CLEANERS (composable)
+        - RemoveEmptyStrings
+        - TrimWhitespace
+        - RemoveEmptyArrays
+        - etc
+        *@
     private JsonNode? ProcessJson(JsonNode? json){
         // for testing, set cleanActions to a given value: 
         cleanActions = new List<CleanAction>(); 
@@ -141,7 +190,6 @@
 
         return json; 
     } 
-
 
     private TraverseResult? CleanJson(JsonNode json, List<CleanAction>? cleanActions) { 
         if (cleanActions!.Count == 0) return new TraverseResult{ Remove = false, Value = json }; 
@@ -189,9 +237,9 @@
     }
 
     // -----------------------------------------------------------
-    // to-do 
-    // there is a bug where null values accidentally get removed 
-    // use TraverseResult instead of JsonNode? (null) as return type 
+    // custom return type: Traverse result: 
+    // bool: remove yes /no 
+    // JsonNode ... the json that got expected. 
     // -----------------------------------------------------------
     // ->(bool Remove, JsonNode? Value)
     private TraverseResult? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
@@ -207,7 +255,7 @@
                     changesMade++; 
                     continue; 
                 }
-                //otherwise: 
+                @* //otherwise: 
                 TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
                 if (cleanedResult == null)
                 {
@@ -216,11 +264,12 @@
                 if (cleanedResult!.Remove) { 
                     changesMade++; // here or in CleanJson? 
                     continue; 
-                } // else:  
+                } // else:   *@
+                // else: 
                 // for null values: 
-                if (cleanedResult.Value == null) newobject[item.Key] = null; 
+                if (result.Value == null) newobject[item.Key] = null; 
                 // for none null values: 
-                else newobject[item.Key] = cleanedResult!.Value!.DeepClone(); // node already has a parent, might be a problem here
+                else newobject[item.Key] = result!.Value!.DeepClone(); // node already has a parent, might be a problem here
             }
             Console.WriteLine("returning jsonArray + ", JsonSerializer.Serialize(newobject) );
             return new TraverseResult
@@ -237,8 +286,10 @@
                 if (result!.Remove) {
                     changesMade++; 
                     continue; 
-                } // else continue cleaning node: 
-                TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
+                } 
+                
+                // else continue cleaning node: 
+                @* TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
                 if (cleanedResult == null)
                 {
                     Console.WriteLine("Error! Null cleanedResult == null"); 
@@ -246,8 +297,9 @@
                 if (cleanedResult!.Remove) { 
                     changesMade++; // here or in CleanJson? 
                     continue; 
-                } // else:  // else add child: 
-                newArray.Add(cleanedResult.Value?.DeepClone()); // cleanedResult.Value can be null 
+                } // else:  // else add child:  *@
+
+                newArray.Add(result.Value?.DeepClone()); // cleanedResult.Value can be null 
                 // ? null conditional operator ~ similar to JS optional chaining  
                 // JS = undefined but C# = null
             }
@@ -357,18 +409,18 @@
     @* Fill missing keys in arrays of objects
         using union of sibling keys *@
     private JsonNode? FillMissingKeys(JsonNode json){
-        Console.WriteLine("inside FillMissingKeys:"); 
+        @* Console.WriteLine("inside FillMissingKeys:");  *@
         // collect all keys from sibling objects
         HashSet<string> keys = new HashSet<string>{}; 
 
         if (json is JsonArray jsonArray) {
-            Console.WriteLine("json is JsonArray"); 
+            @* Console.WriteLine("json is JsonArray");  *@
             // if (jsonArray == null) return jsonArray; 
             JsonArray newArray = new JsonArray(); 
 
             foreach(var arrayItem in jsonArray){
                 if (arrayItem is JsonObject jsonObject){
-                    Console.WriteLine("arrayItem is JsonObject"); 
+                    @* Console.WriteLine("arrayItem is JsonObject");  *@
                     foreach (var objectItem in jsonObject) {
                         keys.Add(objectItem.Key); 
                     }
