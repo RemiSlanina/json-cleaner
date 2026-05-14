@@ -9,6 +9,7 @@
 @using Microsoft.AspNetCore.Razor.TagHelpers
 @using System.Runtime.InteropServices.ObjectiveC
 @using CleanJsonApp.Models
+@using Microsoft.Extensions.Logging.Abstractions
 @inject IJSRuntime JS 
 
 @* InteractiveServer is to make buttons work, @onclick works, @bind updates values, and C# methods run when the user interacts. *@
@@ -125,7 +126,10 @@
         } 
         if (cleanActions != null && cleanActions.Count> 0) {
             @* debugging = "inside TraverseTree loop"; *@
-            json = TraverseTree(json!, cleanActions); 
+            TraverseResult? traversed = TraverseTree(json!, cleanActions); 
+            if (traversed != null) json = traversed.Value; 
+            else Console.WriteLine("Error - TraverseTree returned Null in ProcessJson!");
+            
         }
         
         @* if (removeEmptyStrings){
@@ -136,8 +140,8 @@
     } 
 
 
-    private JsonNode? CleanJson(JsonNode json, List<CleanAction>? cleanActions) { 
-        if (cleanActions!.Count == 0) return json; 
+    private TraverseResult? CleanJson(JsonNode json, List<CleanAction>? cleanActions) { 
+        if (cleanActions!.Count == 0) return new TraverseResult{ Remove = false, Value = json }; 
         foreach (CleanAction c in cleanActions) {
             switch (c) 
             {
@@ -149,12 +153,18 @@
                 if (jsonValue.GetValueKind() == JsonValueKind.String) {
                     string str = jsonValue.GetValue<string>(); 
                     if (str == "") {
-                        changesMade++;
-                        return null; 
+                        //changesMade++;  // do that here?  ..nop
+                        return new TraverseResult
+                        {
+                            Remove = true, Value = jsonValue 
+                        }; 
                     }
                     @* string str = JsonSerializer.Serialize(jsonValue); 
                     if (str == "\"\"") return null;  *@
-                    return jsonValue; 
+                    return new TraverseResult
+                        {
+                            Remove = false, Value = jsonValue 
+                        }; 
                 } 
                 break; 
                 case CleanAction.RemoveEmptyArrays: 
@@ -172,7 +182,7 @@
             } 
         }
         
-        return json; 
+        return new TraverseResult{ Remove = false, Value = json }; 
     }
 
     // -----------------------------------------------------------
@@ -181,7 +191,7 @@
     // use TraverseResult instead of JsonNode? (null) as return type 
     // -----------------------------------------------------------
     // ->(bool Remove, JsonNode? Value)
-    private JsonNode? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
+    private TraverseResult? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
         @* if (json == null) return null;  *@
         Console.WriteLine("-----------------------------------------------"); 
 
@@ -189,60 +199,74 @@
             @* debugging = "jsonObject reached"; *@
             JsonObject newobject = new JsonObject(); 
             foreach (var item in jsonObject){
-                @* if (item.Value == null) return null; // is this right here? nope. this might destroy the parent. *@
-                JsonNode? result = TraverseTree(item.Value, cleanActions); 
-                // if a value should be removed/discarded: continue. 
-                // otherwise: add to new array and return it (2 checks, one for structure, 
-                // another after the cleaner did its work)
-                // preserve empty structures if !DiscardNull: 
-                @* if (result == null && cleanActions!.Contains(CleanAction.DiscardNull)) return null; // same here, destroys parent *@
-                if (result == null && cleanActions!.Contains(CleanAction.DiscardNull)) { 
-                    @* TODO: better DiscardNull for (exchange actionChoice == KeyActionOption.RemoveEmptyKeys) b/c semantics == similar *@
+                TraverseResult? result = TraverseTree(item.Value, cleanActions); 
+                if (result!.Remove) { 
                     changesMade++; 
                     continue; 
                 }
                 //otherwise: 
-                result = CleanJson(result!, cleanActions); 
-                if (result == null) continue; 
-                newobject[item.Key] = result; 
+                TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
+                if (cleanedResult == null)
+                {
+                    Console.WriteLine("Error! Null cleanedResult == null"); 
+                }
+                if (cleanedResult!.Remove) { 
+                    changesMade++; // here or in CleanJson? 
+                    continue; 
+                } // else:  
+                // for null values: 
+                if (cleanedResult.Value == null) newobject[item.Key] = null; 
+                // for none null values: 
+                else newobject[item.Key] = cleanedResult!.Value!.DeepClone(); // node already has a parent, might be a problem here
             }
             Console.WriteLine("returning jsonArray + ", JsonSerializer.Serialize(newobject) );
-            return newobject; 
+            return new TraverseResult
+            {
+                Remove = false, Value = newobject
+            };
         }
         if (json is JsonArray jsonArray) {
             Console.WriteLine("jsonArray reached");  
             JsonArray newArray = new JsonArray(); 
             
             foreach (var item in jsonArray){
-                @* if (item == null) return null; // is this right here? this might destroy the parent. *@
-                JsonNode? result = TraverseTree(item, cleanActions); 
-                // if a value should be removed/discarded: continue. 
-                // otherwise: add to new array and return it (2 checks, one for structure, 
-                // another after the cleaner did its work)
-                // preserve empty structures if !DiscardNull: 
-                if (result == null && cleanActions!.Contains(CleanAction.DiscardNull)) {
-                    @* TODO: better DiscardNull for (exchange actionChoice == KeyActionOption.RemoveEmptyKeys) b/c semantics == similar 
-                    (redundant value)*@
+                TraverseResult? result = TraverseTree(item, cleanActions); 
+                if (result!.Remove) {
                     changesMade++; 
                     continue; 
+                } // else continue cleaning node: 
+                TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
+                if (cleanedResult == null)
+                {
+                    Console.WriteLine("Error! Null cleanedResult == null"); 
                 }
-                result = CleanJson(result!, cleanActions); 
-                if (result == null) continue; 
-                newArray.Add(result); 
+                if (cleanedResult!.Remove) { 
+                    changesMade++; // here or in CleanJson? 
+                    continue; 
+                } // else:  // else add child: 
+                newArray.Add(cleanedResult.Value); // cleanedResult.Value can be null
             }
             Console.WriteLine("returning jsonArray + ", JsonSerializer.Serialize(newArray) );
-            return newArray; 
+            return new TraverseResult
+            {
+                Remove = false, Value = newArray
+            }; 
         }
         if (json is JsonValue jsonValue) {
             Console.WriteLine("jsonValue reached."); 
-            @* if  (jsonValue == null) return null;  *@
-            // only call deepclone/cleaners if jsonValue != null 
-            // cleaners 
-            return jsonValue.DeepClone(); 
+            TraverseResult? cleanedResult = CleanJson(jsonValue, cleanActions); 
+            if (cleanedResult == null) 
+            { // should later become if (result.Remove) to-do
+                Console.WriteLine("Error! Null cleanedResult == null"); 
+            } // else 
+            return cleanedResult; 
         }
         @* debugging = "hello";  *@
         @* debugging = "inside TraverseTree function"; *@
-        return null; 
+        return new TraverseResult
+        {
+            Remove = false, Value = null // test if i initially wanted Remove = true here 
+        }; 
     }
 
     
