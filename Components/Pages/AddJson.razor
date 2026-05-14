@@ -244,7 +244,9 @@
                     changesMade++; // here or in CleanJson? 
                     continue; 
                 } // else:  // else add child: 
-                newArray.Add(cleanedResult.Value); // cleanedResult.Value can be null
+                newArray.Add(cleanedResult.Value?.DeepClone()); // cleanedResult.Value can be null 
+                // ? null conditional operator ~ similar to JS optional chaining  
+                // JS = undefined, but C# = null
             }
             Console.WriteLine("returning jsonArray + ", JsonSerializer.Serialize(newArray) );
             return new TraverseResult
