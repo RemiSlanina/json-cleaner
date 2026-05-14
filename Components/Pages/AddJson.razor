@@ -89,6 +89,9 @@
 
     // fetch the string provided by the user, sanitiy check it and deserialize 
     private async Task FetchInput(){
+        Console.WriteLine("-----------------------------------------------"); 
+        Console.WriteLine("start"); 
+        Console.WriteLine("-----------------------------------------------"); 
         changesMade = 0; // reset counter for each turn 
         // sanity check: only use valid json. 
         // deserialization and exceptions
@@ -193,7 +196,7 @@
     // ->(bool Remove, JsonNode? Value)
     private TraverseResult? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
         @* if (json == null) return null;  *@
-        Console.WriteLine("-----------------------------------------------"); 
+        Console.WriteLine("------- Traverse Tree Start --------"); 
 
         if (json is JsonObject jsonObject) {
             @* debugging = "jsonObject reached"; *@
@@ -246,7 +249,7 @@
                 } // else:  // else add child: 
                 newArray.Add(cleanedResult.Value?.DeepClone()); // cleanedResult.Value can be null 
                 // ? null conditional operator ~ similar to JS optional chaining  
-                // JS = undefined, but C# = null
+                // JS = undefined but C# = null
             }
             Console.WriteLine("returning jsonArray + ", JsonSerializer.Serialize(newArray) );
             return new TraverseResult
@@ -354,21 +357,28 @@
     @* Fill missing keys in arrays of objects
         using union of sibling keys *@
     private JsonNode? FillMissingKeys(JsonNode json){
+        Console.WriteLine("inside FillMissingKeys:"); 
         // collect all keys from sibling objects
         HashSet<string> keys = new HashSet<string>{}; 
 
         if (json is JsonArray jsonArray) {
+            Console.WriteLine("json is JsonArray"); 
             // if (jsonArray == null) return jsonArray; 
             JsonArray newArray = new JsonArray(); 
 
             foreach(var arrayItem in jsonArray){
                 if (arrayItem is JsonObject jsonObject){
+                    Console.WriteLine("arrayItem is JsonObject"); 
                     foreach (var objectItem in jsonObject) {
                         keys.Add(objectItem.Key); 
                     }
                 }
             }
         Console.WriteLine(); 
+        if (keys.Count == 0) {
+            Console.WriteLine("no keys collected. stopping exectuion of FillMissingKeys");
+            return json;  
+        } 
         foreach (var key in keys) {
             Console.WriteLine("hashSet key: " + key); 
         }
