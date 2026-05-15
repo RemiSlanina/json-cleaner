@@ -30,11 +30,18 @@
         <textarea @bind="jsonInput" name="user-input" id="user-input" rows="8"></textarea> <br />
 
         <div class="controls">
-             @* RemoveEmptyStrings and so on will get RADIO BUTTONS here. can be added in addition to the select options *@ 
-             // currently hard coded... 
-             // later add like this and add to list: cleanActions 
-            @* <label for="empty-strings">Remove Empty Strings</label>
-            <input name="empty-strings" id="empty-strings" value="@CleanAction.RemoveEmptyStrings" type="radio"> <br /> *@
+            <label for="trim-whitespace">Trim Whitespace</label>
+        <input
+            id="trim-whitespace"
+            type="checkbox"
+            @bind="trimWhitespace" />
+
+        <label for="remove-empty-strings">Remove Empty Strings</label>
+        <input
+            id="remove-empty-strings"
+            type="checkbox"
+            @bind="removeEmptyStrings" /> <br />
+
             @*  STRUCTURE: 
                 mutually exclusive mutations: 
                 MODE (exclusive)
@@ -42,12 +49,11 @@
                 - RemoveEmptyKeys
                 - None
                 
-                not mutually exclusive (add radio buttons for these)
+                not mutually exclusive (add checkboxes for these)
                 CLEANERS (composable)
                 - RemoveEmptyStrings
                 - TrimWhitespace
                 - and so on..
-
                 
                 structural (RemoveEmptyObjects, RemoveEmptyArrays) : not currently featured 
                 *@
@@ -62,10 +68,11 @@
         <button class="btn btn-secondary"  @onclick="FetchInput">Upload</button>
     </div>
 </section>
-
+@* 
 <h2>Debugging</h2>
 <p>Debug jsonInput: @jsonInput @actionChoice</p><br /><p>@debugging</p><br /> 
-<hr>
+<hr> 
+*@
 
 <section class="output-section">
     <h2>Output</h2>
@@ -99,14 +106,16 @@
         RemoveTrailingZero // TO DO later 
    
     }
+    private bool trimWhitespace = true;
+    private bool removeEmptyStrings = true;
+    private List<CleanAction>? cleanActions { get; set; } 
     private class TraverseResult 
     {
         public bool Remove { get; set; } 
         public JsonNode? Value { get; set; }
     }
-    private List<CleanAction>? cleanActions { get; set; } 
-    @* private List<CleanAction>? cleanActions { get; set; } = new List<CleanAction>();  *@
-    private string debugging = ""; 
+
+    @* private string debugging = "";  *@
 
 
     // fetch the string provided by the user, sanitiy check it and deserialize 
@@ -114,7 +123,18 @@
         Console.WriteLine("-----------------------------------------------"); 
         Console.WriteLine("start"); 
         Console.WriteLine("-----------------------------------------------"); 
+
         changesMade = 0; // reset counter for each turn 
+        // populate cleanActions 
+        cleanActions = new List<CleanAction>(); 
+        if (trimWhitespace)
+        {
+            cleanActions.Add(CleanAction.TrimWhitespace);
+        }
+        if (removeEmptyStrings)
+        {
+            cleanActions.Add(CleanAction.RemoveEmptyStrings);
+        }
         // sanity check: only use valid json. 
         // deserialization and exceptions
         try {
@@ -131,6 +151,8 @@
         result = parsedJson != null ? ProcessJson(parsedJson) : new JsonObject(); 
         // serialize and output 
         await ProvideJsonOutput(result); 
+
+
     } 
 
         @* @ProcessJson:
@@ -163,9 +185,6 @@
         *@
     private JsonNode? ProcessJson(JsonNode? json){
         // for testing, set cleanActions to a given value: 
-        cleanActions = new List<CleanAction>();
-        cleanActions.Add(CleanAction.TrimWhitespace); 
-        cleanActions.Add(CleanAction.RemoveEmptyStrings);
         @* TrimWhitespace needs to come first, because it could create "" eligible for RemoveEmptyStrings *@
         Console.WriteLine("json input: " + JsonSerializer.Serialize(json));
         @* Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(json));  *@
