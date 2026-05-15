@@ -46,8 +46,10 @@
                 CLEANERS (composable)
                 - RemoveEmptyStrings
                 - TrimWhitespace
-                - RemoveEmptyArrays 
                 - and so on..
+
+                
+                structural (RemoveEmptyObjects, RemoveEmptyArrays) : not currently featured 
                 *@
             @* the below options are mutually exclusive: *@
             <label for="object-keys">Select whether to remove or add empty keys in objects:</label>
@@ -76,7 +78,6 @@
 @code {
     private string jsonInput = ""; 
     private KeyActionOption actionChoice = KeyActionOption.None; 
-    @* private bool removeEmptyStrings = true;  *@
     private int changesMade { get; set; } = 0; 
     private string errorMessage { get; set; }  = ""; 
     private JsonNode? parsedJson { get; set; } = new JsonObject();   
@@ -92,13 +93,13 @@
     private enum CleanAction
     {
         RemoveEmptyStrings,
-        RemoveEmptyArrays,  
+        RemoveEmptyArrays,  // this should be its own function/class/enum
         TrimWhitespace,  
-        RemoveZeroValues, 
-        RemoveTrailingZero
+        RemoveZeroValues, // TO DO later 
+        RemoveTrailingZero // TO DO later 
    
     }
-    private class TraverseResult // for use in func TraverseTree (todo)
+    private class TraverseResult 
     {
         public bool Remove { get; set; } 
         public JsonNode? Value { get; set; }
@@ -128,7 +129,6 @@
         }
         // process it depending on user input: 
         result = parsedJson != null ? ProcessJson(parsedJson) : new JsonObject(); 
-        @* await Task.Delay(millisecondsDelay: 500); *@
         // serialize and output 
         await ProvideJsonOutput(result); 
     } 
@@ -158,15 +158,14 @@
         CLEANERS (composable)
         - RemoveEmptyStrings
         - TrimWhitespace
-        - RemoveEmptyArrays
-        - etc
+        
+        structural (RemoveEmptyObjects, RemoveEmptyArrays) : not currently supported  
         *@
     private JsonNode? ProcessJson(JsonNode? json){
         // for testing, set cleanActions to a given value: 
         cleanActions = new List<CleanAction>();
         cleanActions.Add(CleanAction.TrimWhitespace); 
         cleanActions.Add(CleanAction.RemoveEmptyStrings);
-        cleanActions.Add(CleanAction.RemoveEmptyArrays); 
         @* TrimWhitespace needs to come first, because it could create "" eligible for RemoveEmptyStrings *@
         Console.WriteLine("json input: " + JsonSerializer.Serialize(json));
         @* Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(json));  *@
@@ -174,7 +173,6 @@
 
         if (json == null) return new JsonObject(); 
         if (cleanActions != null && cleanActions.Count> 0) {
-            @* debugging = "inside TraverseTree loop"; *@
             Console.WriteLine("Calling TraverseTree()");
             TraverseResult? traversed = TraverseTree(json!, cleanActions); 
             if (traversed != null) json = traversed.Value; 
@@ -190,9 +188,6 @@
             json = FillMissingKeys(json!); // ! = null-forgiving operator 
         } 
         
-        @* if (removeEmptyStrings){
-            json = RemoveEmptyStrings(json); 
-        } *@
 
         return json; 
     } 
@@ -228,21 +223,7 @@
                     }
                 }
                 break; 
-                @* if (json is not JsonValue jsonValue1) break; 
-                if (jsonValue1.GetValueKind() == JsonValueKind.Null) break; 
-                if (jsonValue1.GetValueKind() == JsonValueKind.String) {
-                    string str = jsonValue1.GetValue<string>(); 
-                    string trimmed = str.Trim(); 
-                    if (trimmed.Length != str.Length) {
-                        changesMade++; 
-                    }
-                    // return false in case the string still contains chars, since the string will not be removed: 
-                    return new TraverseResult
-                    {
-                        Remove = false, Value = JsonValue.Create(trimmed) 
-                    };
-                } 
-                break; *@
+            
                 case CleanAction.RemoveEmptyStrings: 
                 Console.WriteLine("Removing empty strings"); 
 
@@ -259,7 +240,7 @@
                     }
                 }
                 break; 
-                
+
                 @* I don't RemoveEmptyArrays here anymore, since this is a structural one, 
                 and CleanJson is more for primitive types (JsonValues) *@
 
@@ -267,6 +248,7 @@
                 Console.WriteLine("Removing Zero Values"); 
                 // TO DO later
                 break; 
+
                 default: 
                 Console.WriteLine("No valid CleanAction."); 
                 break; 
@@ -276,18 +258,16 @@
         return new TraverseResult{ Remove = remove, Value = current }; 
     }
 
-    // -----------------------------------------------------------
+    // -------------------------------------------------
     // custom return type: Traverse result: 
     // bool: remove yes /no 
     // JsonNode ... the json that got expected. 
-    // -----------------------------------------------------------
-    // ->(bool Remove, JsonNode? Value)
+    // -------------------------------------------------
     private TraverseResult? TraverseTree(JsonNode? json, List<CleanAction>? cleanActions) {
         @* if (json == null) return null;  *@
         Console.WriteLine("------- Traverse Tree Start --------"); 
 
         if (json is JsonObject jsonObject) {
-            @* debugging = "jsonObject reached"; *@
             JsonObject newobject = new JsonObject(); 
             foreach (var item in jsonObject){
                 TraverseResult? result = TraverseTree(item.Value, cleanActions); 
@@ -295,17 +275,6 @@
                     changesMade++; 
                     continue; 
                 }
-                @* //otherwise: 
-                TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
-                if (cleanedResult == null)
-                {
-                    Console.WriteLine("Error! Null cleanedResult == null"); 
-                }
-                if (cleanedResult!.Remove) { 
-                    changesMade++; // here or in CleanJson? 
-                    continue; 
-                } // else:   *@
-                // else: 
                 // for null values: 
                 if (result.Value == null) newobject[item.Key] = null; 
                 // for none null values: 
@@ -327,17 +296,6 @@
                     changesMade++; 
                     continue; 
                 } 
-                
-                // else continue cleaning node: 
-                @* TraverseResult? cleanedResult = CleanJson(result!.Value!, cleanActions); 
-                if (cleanedResult == null)
-                {
-                    Console.WriteLine("Error! Null cleanedResult == null"); 
-                }
-                if (cleanedResult!.Remove) { 
-                    changesMade++; // here or in CleanJson? 
-                    continue; 
-                } // else:  // else add child:  *@
 
                 newArray.Add(result.Value?.DeepClone()); // cleanedResult.Value can be null 
                 // ? null conditional operator ~ similar to JS optional chaining  
@@ -353,13 +311,12 @@
             Console.WriteLine("jsonValue reached."); 
             TraverseResult? cleanedResult = CleanJson(jsonValue, cleanActions); 
             if (cleanedResult == null) 
-            { // should later become if (result.Remove) to-do
+            {  
                 Console.WriteLine("Error! Null cleanedResult == null"); 
-            } // else 
+            }  
             return cleanedResult; 
         }
-        @* debugging = "hello";  *@
-        @* debugging = "inside TraverseTree function"; *@
+
         return new TraverseResult
         {
             Remove = false, Value = null // test if i initially wanted Remove = true here 
@@ -394,11 +351,10 @@
         if (json is JsonObject jsonObject) {
             JsonObject newObject = new JsonObject();
             foreach (var item in jsonObject){
-                //Console.WriteLine(item.Key); 
                 // copy the values if they are not null
                 // Parente: I chose not to copy this property.
                 JsonNode? result = RemoveEmptyKeys(item.Value); 
-                if  (result != null) {  // recursion : did the value return null? 
+                if  (result != null) {   
                     newObject[item.Key] = result;
                 } else {
                     // when no copy is made, changesMade++ 
@@ -425,18 +381,10 @@
         }
         // primitives
         if (json is JsonValue jsonValue) {
-            @* // TODO
-                // clean it up optionall (cleaner function)
-                f.e. :
-                trim whitespace
-                remove empty strings
-                normalize numbers
-                remove empty arrays/objects 
-            *@
+
             if (jsonValue.GetValueKind() == JsonValueKind.Null){
                 return null; 
             }
-             
             // clone : otherwise error - ThrowInvalidOperationException_NodeAlreadyHasParent() 
             // = parent = json (the original file)
            return jsonValue.DeepClone(); 
@@ -514,7 +462,6 @@
         return json; 
     }
 
-
     private bool isEmptyValue(JsonNode node) {
         if (node == null) return true; 
         if (node is JsonValue jsonValue) {
@@ -561,16 +508,13 @@
             string? json = await JS.InvokeAsync<string?>("localStorage.getItem", "savedJsons"); 
                 // can be null too <string?>
             if (string.IsNullOrWhiteSpace(json)) {
-                // don't do this 
-                Console.WriteLine(); 
                 Console.WriteLine("empty stoarage"); 
-                Console.WriteLine(); 
+                savedJsons = new List<SavedJson>(); 
                 return; 
             }
             savedJsons = JsonSerializer.Deserialize<List<SavedJson>>(json) ?? []; 
         }
         StateHasChanged(); 
     }
-
 }
 
