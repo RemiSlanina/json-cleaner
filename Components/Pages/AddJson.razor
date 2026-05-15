@@ -163,8 +163,11 @@
         *@
     private JsonNode? ProcessJson(JsonNode? json){
         // for testing, set cleanActions to a given value: 
-        cleanActions = new List<CleanAction>(); 
-        cleanActions.Add(CleanAction.RemoveEmptyStrings); 
+        cleanActions = new List<CleanAction>();
+        cleanActions.Add(CleanAction.TrimWhitespace); 
+        cleanActions.Add(CleanAction.RemoveEmptyStrings);
+        cleanActions.Add(CleanAction.RemoveEmptyArrays); 
+        @* TrimWhitespace needs to come first, because it could create "" eligible for RemoveEmptyStrings *@
         Console.WriteLine("json input: " + JsonSerializer.Serialize(json));
         @* Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(json));  *@
         Console.WriteLine(); 
@@ -194,41 +197,75 @@
         return json; 
     } 
 
-    private TraverseResult? CleanJson(JsonNode json, List<CleanAction>? cleanActions) { 
-        if (cleanActions!.Count == 0) return new TraverseResult{ Remove = false, Value = json }; 
+    private TraverseResult? CleanJson(JsonNode json, List<CleanAction>? cleanActions) 
+        { 
+        if (cleanActions == null || cleanActions!.Count == 0) return new TraverseResult{ Remove = false, Value = json }; 
+
+        JsonNode? current = json.DeepClone(); 
+        bool remove = false; 
+
         foreach (CleanAction c in cleanActions) {
+            // if already removed, stop processing: 
+            if (remove || current == null) {
+                break; 
+            }
+
             switch (c) 
             {
-                case CleanAction.RemoveEmptyStrings: 
-                Console.WriteLine("Removing empty strings"); // TO DO 
-                if (json is not JsonValue jsonValue) break; 
-                @* if (jsonValue.GetValueKind() == JsonValueKind.Null) return jsonValue;  *@
-                if (jsonValue.GetValueKind() == JsonValueKind.Null) break; 
-                if (jsonValue.GetValueKind() == JsonValueKind.String) {
-                    string str = jsonValue.GetValue<string>(); 
-                    if (str == "") {
-                        //changesMade++;  // do that here?  ..nop
-                        return new TraverseResult
-                        {
-                            Remove = true, Value = jsonValue 
-                        }; 
-                    }
-                    @* string str = JsonSerializer.Serialize(jsonValue); 
-                    if (str == "\"\"") return null;  *@
-                    return new TraverseResult
-                        {
-                            Remove = false, Value = jsonValue 
-                        }; 
-                } 
-                break; 
-                case CleanAction.RemoveEmptyArrays: 
-                Console.WriteLine("Removing empty arrays"); // TO DO 
-                break; 
                 case CleanAction.TrimWhitespace: 
-                Console.WriteLine("Trim Whitespace selected"); // TO DO 
+                Console.WriteLine("Trim Whitespace selected"); 
+                
+                if (current is JsonValue trimValue && trimValue.GetValueKind() == JsonValueKind.String)
+                {
+                    string original = trimValue.GetValue<string>(); 
+                    string trimmed = original.Trim(); 
+
+                    if (original != trimmed)
+                    {
+                        changesMade++; 
+
+                        current = JsonValue.Create(trimmed); 
+                    }
+                }
                 break; 
+                @* if (json is not JsonValue jsonValue1) break; 
+                if (jsonValue1.GetValueKind() == JsonValueKind.Null) break; 
+                if (jsonValue1.GetValueKind() == JsonValueKind.String) {
+                    string str = jsonValue1.GetValue<string>(); 
+                    string trimmed = str.Trim(); 
+                    if (trimmed.Length != str.Length) {
+                        changesMade++; 
+                    }
+                    // return false in case the string still contains chars, since the string will not be removed: 
+                    return new TraverseResult
+                    {
+                        Remove = false, Value = JsonValue.Create(trimmed) 
+                    };
+                } 
+                break; *@
+                case CleanAction.RemoveEmptyStrings: 
+                Console.WriteLine("Removing empty strings"); 
+
+                if (current is JsonValue stringValue && stringValue.GetValueKind() == JsonValueKind.String)
+                {
+                    string str = stringValue.GetValue<string>(); 
+                    
+                    if (str == "") 
+                    {
+                        //changesMade++; // later 
+                        
+                        remove = true; 
+                        current = null; 
+                    }
+                }
+                break; 
+                
+                @* I don't RemoveEmptyArrays here anymore, since this is a structural one, 
+                and CleanJson is more for primitive types (JsonValues) *@
+
                 case CleanAction.RemoveZeroValues: 
-                Console.WriteLine("Removing Zero Values"); // TO DO 
+                Console.WriteLine("Removing Zero Values"); 
+                // TO DO later
                 break; 
                 default: 
                 Console.WriteLine("No valid CleanAction."); 
@@ -236,7 +273,7 @@
             } 
         }
         
-        return new TraverseResult{ Remove = false, Value = json }; 
+        return new TraverseResult{ Remove = remove, Value = current }; 
     }
 
     // -----------------------------------------------------------
