@@ -37,13 +37,35 @@ The project was built as a small learning project while exploring:
 
 ## Running locally
 
-Bash
+Bash in clean-json-app/
 
 ```
 dotnet run
 ```
 
+or in root
+
+```
+dotnet run --project clean-json-app/
+```
+
 Then open the local development URL shown in the terminal.
+
+## Tests
+
+Tests are structured like:
+
+```
+clean-json/
+├── clean-json-app/
+└── CleanJsonApp.Tests/
+```
+
+Inside CleanJsonApp.Tests/:
+
+```
+dotnet test
+```
 
 ## License
 

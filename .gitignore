@@ -1,17 +1,23 @@
-# Dev notes 
-dev-notes/ 
-
 # Build output
 bin/
 obj/
 
-# User-specific files
+# Rider / VS / VSCode
+.vscode/
+.vs/
 *.user
 *.suo
-
-# VS Code
-.vscode/
+*.lscache
 
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Dev notes
+dev-notes/
+CleanJsonApp.Tests/SAVE.txt
+
+# Other 
+*.csproj.user
+*.csproj.iscache
+*.iscache
