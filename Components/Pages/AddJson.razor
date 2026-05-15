@@ -95,8 +95,8 @@
         RemoveEmptyArrays,  
         TrimWhitespace,  
         RemoveZeroValues, 
-        RemoveTrailingZero, 
-        DiscardNull
+        RemoveTrailingZero
+   
     }
     private class TraverseResult // for use in func TraverseTree (todo)
     {
@@ -170,19 +170,22 @@
         Console.WriteLine(); 
 
         if (json == null) return new JsonObject(); 
-        if (actionChoice == KeyActionOption.RemoveEmptyKeys) { 
-            json = RemoveEmptyKeys(json);  
-        } 
-        if (actionChoice == KeyActionOption.FillMissingKeys) {
-            json = FillMissingKeys(json!); // ! = null-forgiving operator 
-        } 
         if (cleanActions != null && cleanActions.Count> 0) {
             @* debugging = "inside TraverseTree loop"; *@
+            Console.WriteLine("Calling TraverseTree()");
             TraverseResult? traversed = TraverseTree(json!, cleanActions); 
             if (traversed != null) json = traversed.Value; 
             else Console.WriteLine("Error - TraverseTree returned Null in ProcessJson!");
-            
-        }
+        } 
+        @* these should come at the end (especially FillMissingKeys for removed ""...) *@
+        if (actionChoice == KeyActionOption.RemoveEmptyKeys) { 
+            Console.WriteLine("Calling RemoveEmptyKeys()");
+            json = RemoveEmptyKeys(json);  
+        } 
+        if (actionChoice == KeyActionOption.FillMissingKeys) {
+            Console.WriteLine("Calling FillMissingKeys()");
+            json = FillMissingKeys(json!); // ! = null-forgiving operator 
+        } 
         
         @* if (removeEmptyStrings){
             json = RemoveEmptyStrings(json); 
