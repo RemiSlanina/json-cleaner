@@ -59,6 +59,7 @@ obj/Debug/net8.0/
  clean-json-app.AssemblyInfo.cs
  clean-json-app.GlobalUsings.g.cs
 Program.cs
+Services/JsonProcessor.cs
 
 [metadataReferences]
 ../../../../usr/lib/dotnet/packs/Microsoft.AspNetCore.App.Ref/8.0.26/ref/net8.0/
